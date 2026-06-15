@@ -1,0 +1,106 @@
+================================================================================
+                    WHEEL MASTER RUN - UNITY SETUP GUIDE
+================================================================================
+
+This guide walks you through setting up the "Wheel Master Run" project in Unity. All core C# scripts have been created inside the Assets/_Game/Scripts/ folder. Follow these steps to assemble the scenes and configure prefabs.
+
+--------------------------------------------------------------------------------
+1. DIRECTORY OVERVIEW & COMPILATION
+--------------------------------------------------------------------------------
+Open Unity (2020.3 LTS or newer recommended) and load the workspace directory as the project folder. Unity will compile the newly added C# scripts.
+
+--------------------------------------------------------------------------------
+2. PREFAB CONFIGURATIONS
+--------------------------------------------------------------------------------
+
+A. PLAYER PREFAB (PlayerBike)
+   Create a new GameObject named "PlayerBike" in a new scene.
+   1. Add a Rigidbody component.
+      - Set Collision Detection to "Continuous".
+      - Freeze Rotation on X, Y, and Z axes.
+   2. Add a Capsule Collider or Box Collider.
+      - Adjust the center/height to fit your player character.
+   3. Add the "PlayerController" component.
+      - Set Forward Speed = 8.
+      - Set Lane Change Speed = 10.
+      - Set Lane Width = 2.
+   4. Add the "WheelSystem" component.
+      - Create two child GameObjects representing the front and back wheels. Add wheel models/cylinders inside them.
+      - Add these two transforms to the "Wheels" array in the WheelSystem inspector.
+      - Create a child GameObject named "BikeVisualRoot" and move all other elements (frame, rider character) under it. Link this transform to the "BikeBodyVisual" slot in the WheelSystem inspector.
+   5. Save "PlayerBike" as a Prefab inside Assets/_Game/Prefabs/Player/.
+
+B. TRACK SEGMENTS
+   Each segment should have a road model (width around 6m, length around 30m).
+   1. Create "RoadStraight" prefab:
+      - Add "TrackSegment" component.
+      - Create a child transform at the very end of the segment (e.g. Z = 30) called "ConnectionAnchor". Link it to the "ConnectionAnchor" script slot.
+      - Create 3 child lanes: Lane0 (Left, X = -2), Lane1 (Center, X = 0), Lane2 (Right, X = 2). Inside each lane, place multiple empty transforms as SpawnPoints. Link these to the Lane0, Lane1, and Lane2 SpawnPoints arrays in the inspector.
+      - Save as a prefab.
+   2. Create "FinishPlatform" prefab:
+      - Needs a long platform with a ramp.
+      - Place Multiplier Walls spaced out (e.g. 1X, 2X, 3X, 5X, 10X triggers).
+      - Add a "FinishChest" prefab at the very end.
+
+C. OBSTACLES
+   Create prefabs containing colliders set as "Is Trigger":
+   1. Rotating Saw: Add "RotatingSaw" component. Attach a saw model.
+   2. Spikes: Add a static collider, attach "Obstacle" script.
+   3. Crusher: Add "Crusher" component. Animates up/down.
+   4. Size Gate: Add "SizeGate" component. Create SuccessVisual (green) and FailureVisual (red) child states.
+
+D. COLLECTIBLES
+   Create prefabs with colliders set as "Is Trigger":
+   1. Wheel Item: Add "CollectibleItem" component. Set type to "Wheel", value = 0.1f.
+   2. Gem Item: Add "CollectibleItem" component. Set type to "Gem", value = 1.0f.
+
+--------------------------------------------------------------------------------
+3. THIRD-PERSON CAMERA SETUP
+--------------------------------------------------------------------------------
+To achieve a smooth third-person follow effect behind the cyclist:
+1. Select the Main Camera.
+2. Add a simple camera follow script (e.g., standard Unity follow, or you can write a short CameraFollow script matching this layout):
+   ```csharp
+   using UnityEngine;
+
+   public class CameraFollow : MonoBehaviour
+   {
+       public Transform target;
+       public Vector3 offset = new Vector3(0, 5, -8);
+       public float followSpeed = 5f;
+
+       private void LateUpdate()
+       {
+           if (target == null)
+           {
+               // Attempt to find player dynamically
+               GameObject player = GameObject.FindWithTag("Player");
+               if (player != null) target = player.transform;
+               return;
+           }
+           Vector3 targetPos = target.position + offset;
+           transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * followSpeed);
+           transform.LookAt(target.position + Vector3.up * 1f);
+       }
+   }
+   ```
+3. Set the Player Tag to "Player" on the Player prefab.
+
+--------------------------------------------------------------------------------
+4. SCENE MANAGERS SETUP
+--------------------------------------------------------------------------------
+In your MainGame scene:
+1. Create a "GameManager" GameObject:
+   - Attach the "GameManager" component.
+   - Link the "PlayerBike" prefab to the Player Prefab slot.
+   - Create an empty child GameObject at X = 0, Y = 0, Z = 0, name it "StartPoint", and link it to the Start Point slot.
+2. Create a "LevelManager" GameObject:
+   - Attach the "LevelManager" component.
+   - Link the TrackSegment, FinishPlatform, Obstacle, and Collectible prefabs into the matching arrays.
+3. Create a "CurrencyManager" GameObject:
+   - Attach the "CurrencyManager" component.
+   - Attach "AdManager" to this or a separate object.
+4. Create UIManager Canvas hierarchy:
+   - Design separate Panel GameObjects: MenuPanel, HUDPanel, GameOverPanel, VictoryPanel, ShopPanel.
+   - Bind buttons to UIManager callbacks (e.g., OnPlayButtonPressed, OnRestartButtonPressed, etc.).
+   - Attach the "UIManager" and "ShopUI" scripts, setting UI references.
