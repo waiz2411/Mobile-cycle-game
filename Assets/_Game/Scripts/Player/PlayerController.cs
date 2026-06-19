@@ -52,7 +52,7 @@ namespace WheelMasterRun.Player
         public void StopRun()
         {
             isControlActive = false;
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
         }
 
         private void Update()
